@@ -17,8 +17,12 @@ namespace BlueNetRegistrar
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Clicked event of <see cref="BtnRegister"/>
+        /// </summary>
         private async void BtnRegister_Clicked(object sender, EventArgs e)
         {
+            // Activity feedback on
             Activity.IsRunning = true;
             Activity.IsVisible = true;
 
@@ -34,24 +38,36 @@ namespace BlueNetRegistrar
 
             bool res = await RegisterUser(InputName.Text).ConfigureAwait(true);
 
+            // Activity feedback off
             Activity.IsRunning = false;
             Activity.IsVisible = false;
 
+            // Popup message saying if registration was succesful
             await DisplayAlert("Registration", $"{InputName.Text} has {(res ? "" : "NOT ")}been registered.", "OK");
             if (res)
                 InputName.Text = "";
         }
 
+        /// <summary>
+        /// Register this device with <paramref name="name"/> as username, via the webapi
+        /// </summary>
+        /// <param name="name">The username as chosen by user</param>
+        /// <returns><see langword="true"/> if registration is succesful, otherwise <see langword="false"/></returns>
         private async Task<bool> RegisterUser(string name)
         {
+            // Android ID on android
             string did = DependencyService.Get<IDevice>().GetIdentifier();
 
+            var content = new { DID = did, UserName = name };
+
+            // WebApi client
             RestClient client = new RestClient("https://bluenetweb.azurewebsites.net/api/registrar");
-            IRestRequest req = new RestRequest(Method.POST).AddJsonBody(new { DID = did, UserName = name });
+            // Post request with DID and UserName in a json body
+            IRestRequest req = new RestRequest(Method.POST).AddJsonBody(content);
             using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource())
             {
+                // Make request and return true if succesful
                 IRestResponse res = await client.ExecuteTaskAsync(req, cancellationTokenSource.Token);
-
                 return res.StatusCode == System.Net.HttpStatusCode.OK;
             }
         }
